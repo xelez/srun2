@@ -151,7 +151,7 @@ void hypervisor(process_t *proc) {
     proc->stats.time = 0;
     proc->stats.real_time = 0;
 
-    do {
+    while(1) {
         set_timeout(HYPERVISOR_DELAY);
 
     	int status;
@@ -187,5 +187,5 @@ void hypervisor(process_t *proc) {
 
         if (proc->stats.result != _OK) //one of the limits exceeded
             kill(proc->pid, SIGKILL);
-    } while (1);
+    }
 }
