@@ -15,7 +15,6 @@
  */
 
 
-
 /**
  * Wrapper for system clone function.
  */
@@ -127,10 +126,7 @@ void setup_drop_caps()
     DEBUG("capabilities has been dropped");
 }
 
-/**
- * Change hostname
- */
-void setup_hostname(const char *name)
+void change_hostname(const char *name)
 {
     if (!name) return;
     if (sethostname(name, strlen(name)) == -1) {
@@ -139,9 +135,6 @@ void setup_hostname(const char *name)
     }
 }
 
-/**
- * Change root directory
- */
 void setup_chroot(const char *dir)
 {
     if (!dir) return;
@@ -215,7 +208,8 @@ int do_start(void *_data) {
     return 1;
 }
 
-void run(process_t *proc) {
+
+void spawn_process(process_t *proc) {
     const int clone_flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNET;
 
     proc->stats.start_time = get_rtime();
@@ -225,7 +219,6 @@ void run(process_t *proc) {
         SYSERROR("Failed to clone");
         abort(); //TODO: this function MUST return something, not silently aborting
     }
-
-    hypervisor(proc);
 }
+
 
