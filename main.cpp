@@ -14,24 +14,30 @@
  *  limitations under the License.
  */
 
+#include "process.h"
+#include "parser.h"
 #include "log.h"
-#include "utils.h"
-#include "options.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/prctl.h>
-#include <signal.h>
-#include <wait.h>
-#include <math.h>
+static process_t proc;
 
+static parser_option_t options[] = {
+    { "--chdir",    "-d", PARSER_ARG_STR,  &proc.jail.chdir,       "Change directory to dir (done after chroot)" },
+    { "--chroot",   "-c", PARSER_ARG_STR,  &proc.jail.chroot,      "Do a chroot"},
+    { "--hostname", "-h", PARSER_ARG_STR,  &proc.jail.hostname,    "Change hostname"},
+    { "--mem",      "-m", PARSER_ARG_INT,  &proc.limits.mem,       "Limit memory usage (in Mbytes)"},
+    { "--time",     "-t", PARSER_ARG_INT,  &proc.limits.time,      "Limit user+system execution time (in ms)"},
+    { "--real_time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
+    { "--seccomp",  "-s", PARSER_ARG_BOOL, &proc.use_seccomp,      "Use seccomp to ensure security"},
+    { NULL }
+};
 
-void help_and_exit() {
-	fprintf(stderr, "Usage: srun2 [options] command [arg1 arg2 ...] \n");
-	exit(0);
+void help_and_exit(char *cmd) {
+	fprintf(stderr, "Usage: %s [options] [--] command [arg1 arg2 ...]\n", cmd);
+	parser_print_help(options);
+	exit(1);
 }
 
 void set_default_options(process_t *proc) {
@@ -47,51 +53,46 @@ void set_default_options(process_t *proc) {
     proc->argv = NULL;
 }
 
-bool is_option(const char *str, const char *short_form, const char *long_form) {
-	return !strcmp(str, short_form) || !strcmp(str, long_form);
+void run(process_t *proc) {
+	spawn_process(proc);
+    hypervisor(proc);
 }
 
-long parse_long_or_crash(const char *str, int min_value, int max_value) {
-	long value = strtol(str, NULL, 0);
-	if (value < min_value || value > max_value) {
-		ERROR("Invalid argument value");
-		help_and_exit();
-	}
-	return value;
-}
-
-void parse_options_or_help(process_t *proc, int argc, char *argv[]) {
-	int curr_i = 1; // index of current option
-	while (curr_i < argc) {
-		const char *curr = argv[curr_i++];
-
-		if (is_option(curr, "-m", "--mem"))
-			proc->limits.mem = parse_long_or_crash(argv[curr_i++], 1, 1000000000);
-
-		else if (is_option(curr, "-t", "--time"))
-			proc->limits.time = parse_long_or_crash(argv[curr_i++], 1, 1000000000);
-
-		else if (is_option(curr, "-r", "--real_time"))
-			proc->limits.real_time = parse_long_or_crash(argv[curr_i++], 1, 1000000000);
-
-		else {
-			--curr_i;
-			break;
-		}
+/* Very important function, also validates security */
+int validate_options(process_t *proc) {
+	if (proc->limits.mem < 1) {
+		ERROR("Memory limit is too small");
+		return -1;
 	}
 
-	if (curr_i >= argc) {
-		ERROR("Nothing to run");
-		help_and_exit();
+	if (proc->limits.real_time < 10) {
+		ERROR("Real time limit is too small, must be more than 10 ms");
+		return -1;
 	}
 
-	proc->argv = &argv[curr_i];
+	if (proc->limits.time < 10) {
+		ERROR("Time limit is too small, must be more than 10 ms");
+		return -1;
+	}
+
+	if (!proc->argv[0]) {
+		ERROR("No program to run");
+		return -1;
+	}
+
+	return 0;
 }
 
 int main(int argc, char *argv[]) {
-	process_t proc;
 	set_default_options(&proc);
-    parse_options_or_help(&proc, argc, argv);
+
+	int idx = parse_options(options, argc, argv);
+    if (idx == -1)
+    	help_and_exit(argv[0]);
+    proc.argv = &argv[idx];
+
+    if (-1 == validate_options(&proc))
+    	help_and_exit(argv[0]);
 
 	DEBUG("Current limits:\n"
 			  "real time = %d ms\n"
@@ -100,7 +101,6 @@ int main(int argc, char *argv[]) {
 			  proc.limits.real_time,
 			  proc.limits.time,
 			  proc.limits.mem);
-
 
     run(&proc);
     return 0;
