@@ -16,6 +16,8 @@
 
 #include "process.h"
 #include "parser.h"
+#include "spawn.h"
+#include "hypervisor.h"
 #include "log.h"
 
 #include <stdio.h>
@@ -27,7 +29,7 @@ static parser_option_t options[] = {
     { "--chdir",    "-d", PARSER_ARG_STR,  &proc.jail.chdir,       "Change directory to dir (done after chroot)" },
     { "--chroot",   "-c", PARSER_ARG_STR,  &proc.jail.chroot,      "Do a chroot"},
     { "--hostname", "-h", PARSER_ARG_STR,  &proc.jail.hostname,    "Change hostname"},
-    { "--mem",      "-m", PARSER_ARG_INT,  &proc.limits.mem,       "Limit memory usage (in Mbytes)"},
+    { "--mem",      "-m", PARSER_ARG_INT,  &proc.limits.mem,       "Limit memory usage (in Kbytes)"},
     { "--time",     "-t", PARSER_ARG_INT,  &proc.limits.time,      "Limit user+system execution time (in ms)"},
     { "--real_time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
     { "--seccomp",  "-s", PARSER_ARG_BOOL, &proc.use_seccomp,      "Use seccomp to ensure security"},
@@ -53,11 +55,6 @@ void set_default_options(process_t *proc) {
     proc->argv = NULL;
 }
 
-void run(process_t *proc) {
-	spawn_process(proc);
-    hypervisor(proc);
-}
-
 /* Very important function, also validates security */
 int validate_options(process_t *proc) {
 	if (proc->limits.mem < 1) {
@@ -81,6 +78,13 @@ int validate_options(process_t *proc) {
 	}
 
 	return 0;
+}
+
+//TODO: fully rewrite this function, because we must return full info to the caller
+void run(process_t *proc) {
+	if (-1 == spawn_process(proc))
+		exit(1);
+    hypervisor(proc);
 }
 
 int main(int argc, char *argv[]) {
