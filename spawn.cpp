@@ -169,6 +169,8 @@ int do_start(void *_data) {
     //Drop all privileges
     setup_uidgid();
     drop_capabilities();
+    if (prctl(PR_SET_NO_NEW_PRIVS, 1) == -1)
+    	SYSWARN("Can't set NO_NEW_PRIVS flag for the process");
 
     //Now we can do chdir and stdin/stdout redirection
     do_chdir(proc->jail.chdir);
