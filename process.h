@@ -44,6 +44,8 @@ enum result_t {
     _SC = 5  /**< System crash */
 };
 
+const char* const result_to_str[] = {"OK", "RE", "TL", "ML", "SV", "SC"};
+
 /* Run statistics */
 struct stats_t {
     long real_time;        /**< milliseconds */
