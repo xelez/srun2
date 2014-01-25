@@ -21,6 +21,7 @@
 #include <string.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 parser_option_t *find_option(parser_option_t *options, char *name) {
 	parser_option_t * opt = options;
@@ -33,7 +34,7 @@ parser_option_t *find_option(parser_option_t *options, char *name) {
 }
 
 int parse_str(parser_option_t *option, char *arg) {
-	*((char *)option->variable) = strdup(arg);
+	*((char **)option->variable) = strdup(arg);
 	return 0;
 }
 
@@ -42,8 +43,8 @@ int parse_int(parser_option_t *option, char *arg) {
 	char *end;
 	int res = strtol(arg, &end, 0);
 
-	if (arg[0] == '\0' || end[0] == '\0') {
-		ERROR("Argument for ""%s"" is no a valid integer value",  option->long_name);
+	if (arg[0] == '\0' || end[0] != '\0') {
+		ERROR("Argument for ""%s"" is not a valid integer value",  option->long_name);
 		return -1;
 	}
 
@@ -123,12 +124,27 @@ int parse_options(parser_option_t *options, int argc, char **argv) {
 	return idx;
 }
 
-void parser_print_help(parser_option_t *options) {
-	fprintf(stderr, "Options:\n");
+int max_option_len(parser_option_t *options) {
+	int max_len = 0;
 
 	parser_option_t *opt = options;
 	while (opt->long_name) {
-		fprintf(stderr, "\t%s, %s - %s", opt->short_name, opt->long_name, opt->description);
+		int l = strlen(opt->long_name);
+		if (l > max_len)
+			max_len = l;
+		++opt;
+	}
+
+	return max_len;
+}
+
+void parser_print_help(parser_option_t *options) {
+	fprintf(stderr, "Options:\n");
+
+	int max_len = max_option_len(options);
+	parser_option_t *opt = options;
+	while (opt->long_name) {
+		fprintf(stderr, "\t%s, %-*s  - %s\n", opt->short_name, max_len, opt->long_name, opt->description);
 		++opt;
 	}
 }
