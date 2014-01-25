@@ -19,6 +19,12 @@
 #include <seccomp.h>
 #include <stdlib.h>
 
+/*
+ * Workes with this rule set:
+ *  - simpe C++
+ *  - Python 2.7
+ */
+
 void setup_seccomp() {
 	int ret = -1;
 	scmp_filter_ctx ctx;
