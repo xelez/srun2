@@ -92,6 +92,9 @@ long get_mem_from_proc(const pid_t pid) {
 	read_from_proc("status", pid, buf, 512);
 
 	char * pos = strstr(buf, "VmHWM:");
+	if (!pos)
+		return 0;
+
 	long mem;
 	sscanf(pos, "%*s %ld", &mem);
 	return mem;
