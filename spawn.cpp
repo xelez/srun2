@@ -14,6 +14,22 @@
  *  limitations under the License.
  */
 
+#include "log.h"
+#include "process.h"
+
+#include <string.h>
+#include <stdlib.h>
+
+#include <sched.h>
+#include <signal.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <grp.h>
+#include <sys/prctl.h>
+#include <sys/types.h>
+#include <sys/capability.h>
+
 
 /**
  * Wrapper for system clone function.
@@ -37,6 +53,7 @@ pid_t saferun_clone(int (*fn)(void *), void *arg, int flags)
 /**
  * Set close-on-exec flag to all fd`s except 0, 1, 2
  * (stdin, stdout, stderr)
+ * TODO: see http://stackoverflow.com/questions/6583158/finding-open-file-descriptors-for-a-process-linux-c-code
  */
 void setup_inherited_fds()
 {
@@ -54,8 +71,6 @@ void setup_inherited_fds()
     fddir = dirfd(dir);
 
     while (!readdir_r(dir, &dirent, &direntp)) {
-        char procpath[64];
-        char path[PATH_MAX];
 
         if (!direntp)
             break;
@@ -135,12 +150,12 @@ void change_hostname(const char *name)
     }
 }
 
-void setup_chroot(const char *dir)
+void do_chroot(const char *dir)
 {
     if (!dir) return;
     if (chroot(dir) == -1) {
         SYSERROR("can`t chroot");
-        throw -1;
+        abort();
     }
 }
 
@@ -178,6 +193,7 @@ void setup_uidgid(uid_t uid, gid_t gid)
     }
 }
 
+/*
 void setup_jail() {
     setup_inherited_fds();
     //setup_hostname(jail.hostname);
@@ -185,6 +201,7 @@ void setup_jail() {
     //setup_chdir(jail.chdir);
     //TODO: setup rlimit
 }
+*/
 
 void setup_seccomp() {
 }
@@ -196,7 +213,6 @@ void drop_privileges() {
 
 int do_start(void *_data) {
 	process_t *proc = (process_t *) _data;
-    setup_jail();
     drop_privileges();
     prctl(PR_SET_PDEATHSIG, SIGKILL); //TODO: move into some function
 
@@ -209,16 +225,17 @@ int do_start(void *_data) {
 }
 
 
-void spawn_process(process_t *proc) {
+int spawn_process(process_t *proc) {
     const int clone_flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNET;
 
-    proc->stats.start_time = get_rtime();
     proc->pid = saferun_clone(do_start, proc, clone_flags);
 
     if (proc->pid < 0) {
         SYSERROR("Failed to clone");
-        abort(); //TODO: this function MUST return something, not silently aborting
+        return -1;
     }
+
+    return 0;
 }
 
 
