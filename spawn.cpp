@@ -16,6 +16,7 @@
 
 #include "log.h"
 #include "process.h"
+#include "setup_seccomp.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -148,9 +149,6 @@ void setup_uidgid() {
 	}
 }
 
-void setup_seccomp() {
-	//TODO: write it
-}
 
 int do_start(void *_data) {
 	process_t *proc = (process_t *) _data;
