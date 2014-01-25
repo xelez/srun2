@@ -19,12 +19,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <signal.h>
 
 /* in usecs */
 #define HYPERVISOR_DELAY 25*1000
+
+/* Reading from proc constants */
+#define PROC_FILENAME_MAX_LEN 50
+#define PROC_READ_BUF_SIZE 256
 
 /*Timeval to milliseconds */
 #define TV_TO_MSEC(a) ((a).tv_sec * 1000 + (a).tv_usec / 1000)
@@ -37,62 +43,57 @@ long get_rtime()
     return TV_TO_MSEC(t);
 }
 
-//TODO: rewrite all stuff accessing /proc/ because of race-conditions
-// need to read each file with a single read()
-// see http://stackoverflow.com/questions/5713451/is-it-safe-to-parse-a-proc-file
+/* The code below uses system files:
+ *  /proc/<pid>/schedstat - consistent during one read()
+ *  /proc/<pid>/stat - seems to be consistent during one read() or even during open()
+ *  /proc/<pid>/status - same here
+ *
+ *  Because of this we need to read whole file with one call.
+ *  See http://stackoverflow.com/questions/5713451/is-it-safe-to-parse-a-proc-file
+ *  for more information.
+ */
+
+int read_from_proc(const char *filename, const pid_t pid, char *buf, const size_t buf_len) {
+	char full_fname[PROC_FILENAME_MAX_LEN];
+	snprintf(full_fname, PROC_FILENAME_MAX_LEN, "/proc/%d/%s", pid, filename);
+	int fd = open(full_fname, O_RDONLY);
+	read(fd, buf, buf_len);
+	close(fd);
+	return 0; //TODO: add error checking
+}
 
 /* in microseconds, needs investigation, may be more than ru_utime+ru_stime */
 long get_time_from_proc2(const pid_t pid) {
-	char fname[30];
-	snprintf(fname, 30, "/proc/%d/schedstat", pid);
-	FILE * f = fopen(fname, "r");
+	char buf[PROC_READ_BUF_SIZE];
+	read_from_proc("schedstat", pid, buf, PROC_READ_BUF_SIZE);
 	long long time;
-	fscanf(f, "%lld", &time);
-	fclose(f);
+	sscanf(buf, "%lld", &time);
 	return time;
 }
 
 /* in milliseconds, precision is 10 ms, but it's enough */
 long get_time_from_proc(const pid_t pid) {
-	char fname[25];
-	snprintf(fname, 25, "/proc/%d/stat", pid);
-	FILE * f = fopen(fname, "r");
+	char buf[PROC_READ_BUF_SIZE];
+	read_from_proc("stat", pid, buf, PROC_READ_BUF_SIZE);
+
 	unsigned long stime, utime;
-	fscanf(f,
+	sscanf(buf,
 		"%*d %*s %*c %*d %*d " //pid, comm, state, ppid, pgrp
 		"%*d %*d %*d %*u "     //session, tty_nr, tpgid, flags
 		"%*u %*u %*u %*u "     //minflt, cminflt, majflt, cmajflt
 		"%lu %lu", &stime, &utime);
-	fclose(f);
 
 	return (stime + utime)*1000 / sysconf(_SC_CLK_TCK); //return in milliseconds
 }
 
+// in KiloBytes
 long get_mem_from_proc(const pid_t pid) {
-	char fname[25];
-	snprintf(fname, 25, "/proc/%d/status", pid);
-	FILE * f = fopen(fname, "r");
+	char buf[512]; //this file is bigger
+	read_from_proc("status", pid, buf, 512);
 
-	const char * s = "VmHWM:";
-	const int s_len = strlen(s);
-
-	int matched = 0;
-	while (matched < s_len) {
-		int c = fgetc(f);
-		if (c == EOF) {
-			fclose(f);
-			return 0;
-		}
-		if (c == s[matched])
-			++matched;
-		else
-			matched = 0;
-	}
-
+	char * pos = strstr(buf, "VmHWM:");
 	long mem;
-	fscanf(f, " %ld", &mem);
-	fclose(f);
-
+	sscanf(pos, "%*s %ld", &mem);
 	return mem;
 }
 
