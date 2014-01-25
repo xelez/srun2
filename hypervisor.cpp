@@ -14,20 +14,32 @@
  *  limitations under the License.
  */
 
+#include "process.h"
+#include "log.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+#include <signal.h>
+
 /* in usecs */
 #define HYPERVISOR_DELAY 25*1000
 
+/*Timeval to milliseconds */
+#define TV_TO_MSEC(a) ((a).tv_sec * 1000 + (a).tv_usec / 1000)
 
-/**
- * Return real time in milliseconds
- */
-long long get_rtime()
+/** @return real time in milliseconds */
+long get_rtime()
 {
-    timeval t;
+    struct timeval t;
     gettimeofday(&t, NULL);
     return TV_TO_MSEC(t);
 }
 
+//TODO: rewrite all stuff accessing /proc/ because of race-conditions
+// need to read each file with a single read()
+// see http://stackoverflow.com/questions/5713451/is-it-safe-to-parse-a-proc-file
 
 /* in microseconds, needs investigation, may be more than ru_utime+ru_stime */
 long get_time_from_proc2(const pid_t pid) {
@@ -49,7 +61,7 @@ long get_time_from_proc(const pid_t pid) {
 	fscanf(f,
 		"%*d %*s %*c %*d %*d " //pid, comm, state, ppid, pgrp
 		"%*d %*d %*d %*u "     //session, tty_nr, tpgid, flags
-		"%*lu %*lu %*lu %*lu " //minflt, cminflt, majflt, cmajflt
+		"%*u %*u %*u %*u "     //minflt, cminflt, majflt, cmajflt
 		"%lu %lu", &stime, &utime);
 	fclose(f);
 
@@ -145,7 +157,9 @@ void check_memory(stats_t *stats, const limits_t *limits, const long mem) {
 
 
 void hypervisor(process_t *proc) {
-	set_sigalrm_handler(sigalrm_handler);
+    proc->stats.start_time = get_rtime();
+
+    set_sigalrm_handler(sigalrm_handler);
 
     proc->stats.mem = 0;
     proc->stats.time = 0;
