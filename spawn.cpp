@@ -50,15 +50,10 @@ pid_t saferun_clone(int (*fn)(void *), void *arg, int flags)
     return ret;
 }
 
-/**
- * Set close-on-exec flag to all fd`s except 0, 1, 2
- * (stdin, stdout, stderr)
- * TODO: see http://stackoverflow.com/questions/6583158/finding-open-file-descriptors-for-a-process-linux-c-code
- */
+/* Set close-on-exec flag to all fd's except 0, 1, 2. (stdin, stdout, stderr) */
 void setup_inherited_fds()
 {
     struct dirent dirent, *direntp;
-    int fd, fddir;
     DIR *dir;
 
     dir = opendir("/proc/self/fd");
@@ -68,36 +63,26 @@ void setup_inherited_fds()
         return; //Not a critical error
     }
 
-    fddir = dirfd(dir);
-
+    int fddir = dirfd(dir);
     while (!readdir_r(dir, &dirent, &direntp)) {
-
         if (!direntp)
             break;
-
         if (!strcmp(direntp->d_name, "."))
             continue;
-
         if (!strcmp(direntp->d_name, ".."))
             continue;
 
-        fd = atoi(direntp->d_name);
-
-        if (fd == 0 || fd == 1 || fd == 2
-                || fd == fddir)
+        int fd = atoi(direntp->d_name);
+        if (fd == 0 || fd == 1 || fd == 2 || fd == fddir)
             continue;
 
         /* found inherited fd, setting FD_CLOEXEC */
-        if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1) {
-            SYSERROR("can`t close-on-exec on fd %d", fd);
-            throw -1;
-        }
+        if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
+            SYSWARN("can`t close-on-exec on fd %d", fd); //not a critical error
     }
 
-    if (closedir(dir)) {
-        SYSERROR("failed to close directory");
-        throw -1;
-    }
+    if (closedir(dir))
+        SYSWARN("failed to close /proc/self/fd directory");
 }
 
 void redirect_fd(int fd, int to_fd)
@@ -107,51 +92,35 @@ void redirect_fd(int fd, int to_fd)
 
     if (close(to_fd) < 0) {
         SYSERROR("Can`t close old fd: %d", fd);
-        throw -1;
+        abort();
     }
 
     if (dup2(fd, to_fd) == -1) {
         SYSERROR("can`t redirect fd %d to %d", fd, to_fd);
-        throw -1;
+        abort();
     }
 }
 
-/**
- * Drop all capabilities.
- */
-void setup_drop_caps()
-{
+void drop_capabilities() {
     cap_t empty;
     empty = cap_init();
-    if (!empty) {
-            SYSERROR("cap_init() failed");
-            throw -1;
+    if ( cap_set_proc(empty) ) {
+            SYSERROR("cap_set_proc() failed");
+            abort();
     }
-
-    if ( capsetp(0, empty) ) {
-            SYSERROR("capsetp() failed");
-            throw -1;
-    }
-
-    if ( cap_free(empty) ) {
-            SYSERROR("cap_free() failed");
-            throw -1;
-    }
-
-    DEBUG("capabilities has been dropped");
+    cap_free(empty);
+    TRACE("capabilities has been dropped");
 }
 
-void change_hostname(const char *name)
-{
+void change_hostname(const char *name) {
     if (!name) return;
     if (sethostname(name, strlen(name)) == -1) {
         SYSERROR("can`t set hostname");
-        throw -1;
+        abort();
     }
 }
 
-void do_chroot(const char *dir)
-{
+void do_chroot(const char *dir) {
     if (!dir) return;
     if (chroot(dir) == -1) {
         SYSERROR("can`t chroot");
@@ -159,62 +128,51 @@ void do_chroot(const char *dir)
     }
 }
 
-/**
- * Change current directory
- */
-void setup_chdir(const char *dir)
-{
+void do_chdir(const char *dir) {
     if (!dir) return;
     if (chdir(dir) == -1) {
         SYSERROR("can`t chdir");
-        throw -1;
+        abort();
     }
 }
 
-/**
- * Change uid and gid.
- *
- * @note This function drops all groups except gid
- */
-void setup_uidgid(uid_t uid, gid_t gid)
-{
-    // First setting gid, because if we set uid first,
-    // we wouldn`t have rights for seting gid
-    int ret1, ret2, ret3;
-    const gid_t gid_list[] = {gid};
-    if (gid > 0) {
-        ret1 = setgroups(1, gid_list);
-        ret2 = setgid(gid);
-    }
-    if (uid > 0) ret3 = setuid(uid);
-    if (ret1 == -1 || ret2 == -1 || ret3 == -1) {
-        ERROR("can`t set uid and gid");
-        throw -1;
-    }
-}
+/* Drop uid and gid back to real caller's */
+void setup_uidgid() {
+	gid_t gid = getgid();
+	uid_t uid = getuid();
 
-/*
-void setup_jail() {
-    setup_inherited_fds();
-    //setup_hostname(jail.hostname);
-    //setup_chroot(jail.chroot);
-    //setup_chdir(jail.chdir);
-    //TODO: setup rlimit
+    // if we set uid first, we wouldn't have rights for setting gid
+	if (setgid(gid) == -1 || setuid(uid) == -1) {
+        ERROR("Can't set uid and gid");
+        abort();
+	}
 }
-*/
 
 void setup_seccomp() {
-}
-
-void drop_privileges() {
-    //TODO: reset uid and gid?
-    //setup_drop_capabilities();
+	//TODO: write it
 }
 
 int do_start(void *_data) {
 	process_t *proc = (process_t *) _data;
-    drop_privileges();
-    prctl(PR_SET_PDEATHSIG, SIGKILL); //TODO: move into some function
+
+	//Setup child after exec.
+    prctl(PR_SET_PDEATHSIG, SIGKILL); //child MUST be killed when parent dies
+    setup_inherited_fds();
+
+    //Go to jail
+    change_hostname(proc->jail.hostname);
+    do_chroot(proc->jail.chroot);
+
+    //Set up limits
+    //TODO: setup rlimit
+
+    //Drop all privileges
+    setup_uidgid();
+    drop_capabilities();
+
+    //Now we can do chdir and stdin/stdout redirection
+    do_chdir(proc->jail.chdir);
+    //TODO: redirect_fds
 
     if (proc->use_seccomp)
         setup_seccomp();
