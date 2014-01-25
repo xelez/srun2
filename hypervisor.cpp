@@ -133,9 +133,10 @@ void check_exit_status(stats_t *stats, const int status) {
     if (stats->result != _OK)
         return;
 
-    if (WIFSIGNALED(status) ||
-            (WIFEXITED(status) && WEXITSTATUS(status)))
+    if ( WIFEXITED(status) && WEXITSTATUS(status) )
         stats->result = _RE;
+    else if (WIFSIGNALED(status))
+    	stats->result = (WTERMSIG(status) == SIGSYS) ? _SV : _RE;
     else
         stats->result = _OK;
 }
@@ -157,7 +158,6 @@ void check_memory(stats_t *stats, const limits_t *limits, const long mem) {
     if (stats->result == _OK && stats->mem > limits->mem)
     	stats->result = _ML;
 }
-
 
 
 void hypervisor(process_t *proc) {
@@ -184,8 +184,9 @@ void hypervisor(process_t *proc) {
 			const long time = TV_TO_MSEC(usage.ru_utime) + TV_TO_MSEC(usage.ru_stime);
 			check_time(&proc->stats, &proc->limits, time);
 			check_memory(&proc->stats, &proc->limits, usage.ru_maxrss);
-			DEBUG("maxrss: %d, rtime: %d, time: %d",
-					usage.ru_maxrss, proc->stats.real_time, time);
+			check_exit_status(&proc->stats, status);
+			DEBUG("maxrss: %d, rtime: %d, time: %d, result = %d",
+					usage.ru_maxrss, proc->stats.real_time, time, proc->stats.result);
             break;
         }
 
