@@ -24,7 +24,9 @@
 #include <stdlib.h>
 
 static process_t proc;
+bool output_for_human = false;
 
+//TODO: add options for redirecting input and output to files. (be carefull with file rights)
 static parser_option_t options[] = {
     { "--chdir",    "-d", PARSER_ARG_STR,  &proc.jail.chdir,       "Change directory to dir (done after chroot)" },
     { "--chroot",   "-c", PARSER_ARG_STR,  &proc.jail.chroot,      "Do a chroot"},
@@ -33,12 +35,15 @@ static parser_option_t options[] = {
     { "--time",     "-t", PARSER_ARG_INT,  &proc.limits.time,      "Limit user+system execution time (in ms)"},
     { "--real_time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
     { "--seccomp",  "-s", PARSER_ARG_BOOL, &proc.use_seccomp,      "Use seccomp to ensure security"},
+    { "--human",      "", PARSER_ARG_BOOL, &output_for_human,      "Use human-readable output"},
     { NULL }
 };
 
 void help_and_exit(char *cmd) {
 	fprintf(stderr, "Usage: %s [options] [--] command [arg1 arg2 ...]\n", cmd);
 	parser_print_help(options);
+	fprintf(stderr, "\nIf --human is not used, then format is:\n");
+	fprintf(stderr, "string_result result time real_time mem status exit_code_or_string_description_for_signal\n");
 	exit(1);
 }
 
@@ -80,9 +85,46 @@ int validate_options(process_t *proc) {
 	return 0;
 }
 
-//TODO: fully rewrite this function, because we must return full info to the caller
+
+void print_exit_status(int status)
+{
+    if (WIFEXITED(status)) {
+        printf("exited, status=%d\n", WEXITSTATUS(status));
+    } else if (WIFSIGNALED(status)) {
+        printf("killed by signal %d = %s\n", WTERMSIG(status), strsignal(WTERMSIG(status)));
+    } else if (WIFSTOPPED(status)) {
+        printf("stopped by signal %d\n", WSTOPSIG(status));
+    } else if (WIFCONTINUED(status)) {
+        printf("continued\n");
+    }
+}
+
+void print_stats_for_human(process_t *proc) {
+	printf("Result:    %10s\n", result_to_str[proc->stats.result]);
+	printf("Time:      %10ld (ms)\n", proc->stats.time);
+	printf("Real Time: %10ld (ms)\n", proc->stats.real_time);
+	printf("Memory:    %10ld (kB)\n", proc->stats.mem);
+	printf("Status:  ");
+	print_exit_status(proc->stats.status);
+}
+
+void print_stats(process_t *proc) {
+	printf("%s %d %ld %ld %ld %d ",
+			result_to_str[proc->stats.result],
+			proc->stats.result,
+			proc->stats.time,
+			proc->stats.real_time,
+			proc->stats.mem,
+			proc->stats.status);
+
+	if (WIFEXITED(proc->stats.status))
+		printf("%d\n", WEXITSTATUS(proc->stats.status));
+	if (WIFSIGNALED(proc->stats.status))
+		printf("%s\n", strsignal(WTERMSIG(proc->stats.status)));
+}
+
 void run(process_t *proc) {
-	if (-1 == spawn_process(proc))
+	if (spawn_process(proc) == -1)
 		exit(1);
     hypervisor(proc);
 }
@@ -107,5 +149,10 @@ int main(int argc, char *argv[]) {
 			  proc.limits.mem);
 
     run(&proc);
+
+    if (output_for_human)
+    	print_stats_for_human(&proc);
+    else
+    	print_stats(&proc);
     return 0;
 }
