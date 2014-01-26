@@ -35,8 +35,13 @@
     log_print(priority, "Saferun " level ": " format "\n", ##__VA_ARGS__); \
 } while (0)
 
+#ifndef NDEBUG
 #define TRACE(format, ...) LOG_PRINT(SAFERUN_LOG_TRACE, "TRACE", "%s:%d in %s - " format, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 #define DEBUG(format, ...) LOG_PRINT(SAFERUN_LOG_DEBUG, "DEBUG", "%s:%d in %s - " format, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#else
+#define TRACE(format, ...)
+#define DEBUG(format, ...)
+#endif
 
 #define INFO(format, ...)  LOG_PRINT(SAFERUN_LOG_INFO,  "INFO",    format, ##__VA_ARGS__)
 #define WARN(format, ...)  LOG_PRINT(SAFERUN_LOG_WARN,  "WARNING", format, ##__VA_ARGS__)
