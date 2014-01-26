@@ -19,6 +19,7 @@
 #include "setup_seccomp.h"
 
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <sched.h>
@@ -86,20 +87,34 @@ void setup_inherited_fds()
         SYSWARN("failed to close /proc/self/fd directory");
 }
 
+// All output that went fd now goes to to_fd
 void redirect_fd(int fd, int to_fd)
 {
     if (fd == to_fd || fd < 0)
         return;
 
-    if (close(to_fd) < 0) {
+    if (close(fd) < 0) {
         SYSERROR("Can`t close old fd: %d", fd);
         abort();
     }
 
-    if (dup2(fd, to_fd) == -1) {
+    if (dup2(to_fd, fd) == -1) {
         SYSERROR("can`t redirect fd %d to %d", fd, to_fd);
         abort();
     }
+}
+
+void redirect_to_file(int fd, char *filename, char *mode) {
+	if (!filename)
+		return;
+
+	FILE * f = fopen(filename, mode);
+	if (!f) {
+		SYSERROR("Can't open file ""%s""", filename);
+		abort();
+	}
+
+	redirect_fd(fd, fileno(f));
 }
 
 void drop_capabilities() {
@@ -170,9 +185,11 @@ int do_start(void *_data) {
     if (prctl(PR_SET_NO_NEW_PRIVS, 1) == -1)
     	SYSWARN("Can't set NO_NEW_PRIVS flag for the process");
 
-    //Now we can do chdir and stdin/stdout redirection
+    //Now we can do chdir and redirect fd's
     do_chdir(proc->jail.chdir);
-    //TODO: redirect_fds
+    redirect_to_file(STDIN_FILENO, proc->redirect_stdin, "r");
+    redirect_to_file(STDOUT_FILENO, proc->redirect_stdout, "w");
+    redirect_to_file(STDERR_FILENO, proc->redirect_stderr, "w");
 
     if (proc->use_seccomp)
         setup_seccomp();

@@ -63,6 +63,10 @@ struct process_t {
 	jail_t jail;
 	stats_t stats;
 
+	char *redirect_stdin;
+	char *redirect_stdout;
+	char *redirect_stderr;
+
     bool use_seccomp;
 
 	char **argv;

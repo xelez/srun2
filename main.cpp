@@ -36,6 +36,9 @@ static parser_option_t options[] = {
     { "--real_time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
     { "--seccomp",  "-s", PARSER_ARG_BOOL, &proc.use_seccomp,      "Use seccomp to ensure security"},
     { "--human",      "", PARSER_ARG_BOOL, &output_for_human,      "Use human-readable output"},
+    { "--redirect-stdin",  "", PARSER_ARG_STR, &proc.redirect_stdin,  "Redirect stdin to file (after chroot and chdir)"},
+    { "--redirect-stdout", "", PARSER_ARG_STR, &proc.redirect_stdout, "Redirect stdout to file (after chroot and chdir)"},
+    { "--redirect-stderr", "", PARSER_ARG_STR, &proc.redirect_stderr, "Redirect stderr to file (after chroot and chdir)"},
     { NULL }
 };
 
@@ -55,6 +58,10 @@ void set_default_options(process_t *proc) {
     proc->limits.mem = 100*1024; // 100 Mbytes
     proc->limits.real_time = 4000; // 4 sec
     proc->limits.time = 2000; // 2 sec
+
+    proc->redirect_stdin = NULL;
+    proc->redirect_stdout = NULL;
+    proc->redirect_stderr = NULL;
 
     proc->use_seccomp = false;
     proc->argv = NULL;
