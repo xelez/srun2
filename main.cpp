@@ -29,13 +29,12 @@ bool output_for_human = false;
 static parser_option_t options[] = {
     { "--chdir",    "-d", PARSER_ARG_STR,  &proc.jail.chdir,       "Change directory to dir (done after chroot)" },
     { "--chroot",   "-c", PARSER_ARG_STR,  &proc.jail.chroot,      "Do a chroot"},
-    { "--hostname", "-h", PARSER_ARG_STR,  &proc.jail.hostname,    "Change hostname"},
     { "--mem",      "-m", PARSER_ARG_INT,  &proc.limits.mem,       "Limit memory usage (in Kbytes)"},
     { "--time",     "-t", PARSER_ARG_INT,  &proc.limits.time,      "Limit user+system execution time (in ms)"},
     { "--real_time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
     { "--seccomp",  "-s", PARSER_ARG_BOOL, &proc.use_seccomp,      "Use seccomp to ensure security"},
     { "--usens",    "-n", PARSER_ARG_BOOL, &proc.use_namespaces,   "Use namespaces to ensure security (add 30ms overhead)"},
-    { "--human",      "", PARSER_ARG_BOOL, &output_for_human,      "Use human-readable output"},
+    { "--human",    "-h", PARSER_ARG_BOOL, &output_for_human,      "Use human-readable output"},
     { "--redirect-stdin",  "", PARSER_ARG_STR, &proc.redirect_stdin,  "Redirect stdin to file (after chroot and chdir)"},
     { "--redirect-stdout", "", PARSER_ARG_STR, &proc.redirect_stdout, "Redirect stdout to file (after chroot and chdir)"},
     { "--redirect-stderr", "", PARSER_ARG_STR, &proc.redirect_stderr, "Redirect stderr to file (after chroot and chdir)"},
@@ -53,7 +52,6 @@ void help_and_exit(char *cmd) {
 void set_default_options(process_t *proc) {
     proc->jail.chdir = NULL;
     proc->jail.chroot = NULL;
-    proc->jail.hostname = NULL;
     
     proc->limits.mem = 100*1024; // 100 Mbytes
     proc->limits.real_time = 4000; // 4 sec

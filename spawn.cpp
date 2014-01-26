@@ -128,14 +128,6 @@ void drop_capabilities() {
     TRACE("capabilities has been dropped");
 }
 
-void change_hostname(const char *name) {
-    if (!name) return;
-    if (sethostname(name, strlen(name)) == -1) {
-        SYSERROR("can`t set hostname");
-        abort();
-    }
-}
-
 void do_chroot(const char *dir) {
     if (!dir) return;
     if (chroot(dir) == -1) {
@@ -173,7 +165,6 @@ int do_start(void *_data) {
     setup_inherited_fds();
 
     //Go to jail
-    change_hostname(proc->jail.hostname);
     do_chroot(proc->jail.chroot);
 
     //Set up limits

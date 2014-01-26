@@ -28,7 +28,6 @@ struct limits_t {
 struct jail_t {
     char *chroot;
     char *chdir;
-    char *hostname;
     // TODO
     //int max_files; //see rlimit
     //int max_stack;
