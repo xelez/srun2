@@ -26,7 +26,6 @@
 static process_t proc;
 bool output_for_human = false;
 
-//TODO: add options for redirecting input and output to files. (be carefull with file rights)
 static parser_option_t options[] = {
     { "--chdir",    "-d", PARSER_ARG_STR,  &proc.jail.chdir,       "Change directory to dir (done after chroot)" },
     { "--chroot",   "-c", PARSER_ARG_STR,  &proc.jail.chroot,      "Do a chroot"},
@@ -93,8 +92,7 @@ int validate_options(process_t *proc) {
 }
 
 
-void print_exit_status(int status)
-{
+void print_exit_status(int status) {
     if (WIFEXITED(status)) {
         printf("exited, status=%d\n", WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
@@ -161,5 +159,6 @@ int main(int argc, char *argv[]) {
     	print_stats_for_human(&proc);
     else
     	print_stats(&proc);
+
     return 0;
 }
