@@ -34,6 +34,7 @@ static parser_option_t options[] = {
     { "--time",     "-t", PARSER_ARG_INT,  &proc.limits.time,      "Limit user+system execution time (in ms)"},
     { "--real_time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
     { "--seccomp",  "-s", PARSER_ARG_BOOL, &proc.use_seccomp,      "Use seccomp to ensure security"},
+    { "--usens",    "-n", PARSER_ARG_BOOL, &proc.use_namespaces,   "Use namespaces to ensure security (add 30ms overhead)"},
     { "--human",      "", PARSER_ARG_BOOL, &output_for_human,      "Use human-readable output"},
     { "--redirect-stdin",  "", PARSER_ARG_STR, &proc.redirect_stdin,  "Redirect stdin to file (after chroot and chdir)"},
     { "--redirect-stdout", "", PARSER_ARG_STR, &proc.redirect_stdout, "Redirect stdout to file (after chroot and chdir)"},
@@ -63,6 +64,7 @@ void set_default_options(process_t *proc) {
     proc->redirect_stderr = NULL;
 
     proc->use_seccomp = false;
+    proc->use_namespaces = true;
     proc->argv = NULL;
 }
 

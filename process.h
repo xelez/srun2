@@ -68,6 +68,7 @@ struct process_t {
 	char *redirect_stderr;
 
     bool use_seccomp;
+    bool use_namespaces;
 
 	char **argv;
 	pid_t pid;

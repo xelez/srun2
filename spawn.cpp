@@ -201,7 +201,9 @@ int do_start(void *_data) {
 
 
 int spawn_process(process_t *proc) {
-    const int clone_flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNET;
+	int clone_flags = 0;
+	if (proc->use_namespaces)
+		clone_flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNET;
 
     proc->pid = saferun_clone(do_start, proc, clone_flags);
 
