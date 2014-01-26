@@ -104,7 +104,7 @@ void redirect_fd(int fd, int to_fd)
     }
 }
 
-void redirect_to_file(int fd, char *filename, char *mode) {
+void redirect_to_file(int fd, char *filename, const char *mode) {
 	if (!filename)
 		return;
 
