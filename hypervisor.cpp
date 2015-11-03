@@ -134,10 +134,10 @@ void check_exit_status(stats_t *stats, const int status) {
     if (stats->result != _OK)
         return;
 
-    if ( WIFEXITED(status) && WEXITSTATUS(status) )
-        stats->result = _RE;
-    else if (WIFSIGNALED(status))
+	if (WIFSIGNALED(status))
     	stats->result = (WTERMSIG(status) == SIGSYS) ? _SV : _RE;
+	else if (!WIFEXITED(status))
+        stats->result = _RE;
     else
         stats->result = _OK;
 }
