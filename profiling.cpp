@@ -30,7 +30,8 @@ long long PROFILE_get_rtime() {
 
 void PROFILING_do_some_stuff() {
     //just stuff that works for about 1 sec
-    long long s = 1; int t = 100;
+    long long s = 1;
+    int t = 100;
     for (int i = 0; i < 100500000; ++i) {
         s = t*s + i;
     }
