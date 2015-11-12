@@ -170,17 +170,18 @@ int do_start(void *_data) {
     //Set up limits
     //TODO: setup rlimit
 
-    //Drop all privileges
-    setup_uidgid();
-    drop_capabilities();
-    if (prctl(PR_SET_NO_NEW_PRIVS, 1) == -1)
-    	SYSWARN("Can't set NO_NEW_PRIVS flag for the process");
-
-    //Now we can do chdir and redirect fd's
+    // We should chdir and redirect fd's before dropping capabilities because we may not be able to open files. See issue #1.
     do_chdir(proc->jail.chdir);
     redirect_to_file(STDIN_FILENO, proc->redirect_stdin, "r");
     redirect_to_file(STDOUT_FILENO, proc->redirect_stdout, "w");
     redirect_to_file(STDERR_FILENO, proc->redirect_stderr, "w");
+
+    //Drop all privileges
+    setup_uidgid();
+    drop_capabilities();
+
+    if (prctl(PR_SET_NO_NEW_PRIVS, 1) == -1)
+    	SYSWARN("Can't set NO_NEW_PRIVS flag for the process");
 
     if (proc->use_seccomp)
         setup_seccomp();
