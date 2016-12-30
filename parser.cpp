@@ -41,19 +41,19 @@ int parse_str(parser_option_t *option, char *arg) {
 int parse_int(parser_option_t *option, char *arg) {
 	errno = 0;
 	char *end;
-	int res = strtol(arg, &end, 0);
+	long res = strtol(arg, &end, 0);
 
 	if (arg[0] == '\0' || end[0] != '\0') {
 		ERROR("Argument for ""%s"" is not a valid integer value",  option->long_name);
 		return -1;
 	}
 
-	if (res == LONG_MIN || res == LONG_MAX) {
+	if (res <= INT_MIN || res >= INT_MAX) {
 		ERROR("Argument for ""%s"" is outside of integer range", option->long_name);
 		return -1;
 	}
 
-	*((int *)option->variable) = res;
+	*((int *)option->variable) = (int)res;
 	return 0;
 }
 
