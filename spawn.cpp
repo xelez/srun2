@@ -108,6 +108,11 @@ void redirect_to_file(int fd, char *filename, const char *mode) {
 	if (!filename)
 		return;
 
+    if (strcmp(filename, "stdout") == 0) {
+        redirect_fd(fd, STDOUT_FILENO);
+        return;
+    }
+
 	FILE * f = fopen(filename, mode);
 	if (!f) {
 		SYSERROR("Can't open file ""%s""", filename);
@@ -173,13 +178,14 @@ int do_start(void *_data) {
     //Drop all privileges
     setup_uidgid();
     drop_capabilities();
-    if (prctl(PR_SET_NO_NEW_PRIVS, 1) == -1)
+    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1)
     	SYSWARN("Can't set NO_NEW_PRIVS flag for the process");
 
     //Now we can do chdir and redirect fd's
     do_chdir(proc->jail.chdir);
     redirect_to_file(STDIN_FILENO, proc->redirect_stdin, "r");
     redirect_to_file(STDOUT_FILENO, proc->redirect_stdout, "w");
+    // Redirecting stderr must be done after stdout to correctly handle case when redirecting stderr to stdout
     redirect_to_file(STDERR_FILENO, proc->redirect_stderr, "w");
 
     if (proc->use_seccomp)
