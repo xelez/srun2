@@ -45,7 +45,7 @@ void help_and_exit(char *cmd) {
 	fprintf(stderr, "Usage: %s [options] [--] command [arg1 arg2 ...]\n", cmd);
 	parser_print_help(options);
 	fprintf(stderr, "\nIf --human is not used, then format is:\n");
-	fprintf(stderr, "string_result result time real_time mem status exit_code_or_string_description_for_signal\n");
+	fprintf(stderr, "SRUN_REPORT: {string_result} {result} {time} {real_time} {mem} {status} {exit_code_or_string_description_for_signal}\n");
 	exit(1);
 }
 
@@ -92,29 +92,29 @@ int validate_options(process_t *proc) {
 }
 
 
-void print_exit_status(int status) {
+void print_exit_status(FILE *stream, int status) {
     if (WIFEXITED(status)) {
-        printf("exited, status=%d\n", WEXITSTATUS(status));
+        fprintf(stream, "exited, status=%d\n", WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
-        printf("killed by signal %d = %s\n", WTERMSIG(status), strsignal(WTERMSIG(status)));
+        fprintf(stream, "killed by signal %d = %s\n", WTERMSIG(status), strsignal(WTERMSIG(status)));
     } else if (WIFSTOPPED(status)) {
-        printf("stopped by signal %d\n", WSTOPSIG(status));
+        fprintf(stream, "stopped by signal %d\n", WSTOPSIG(status));
     } else if (WIFCONTINUED(status)) {
-        printf("continued\n");
+        fprintf(stream, "continued\n");
     }
 }
 
-void print_stats_for_human(process_t *proc) {
-	printf("Result:    %10s\n", result_to_str[proc->stats.result]);
-	printf("Time:      %10ld (ms)\n", proc->stats.time);
-	printf("Real Time: %10ld (ms)\n", proc->stats.real_time);
-	printf("Memory:    %10ld (kB)\n", proc->stats.mem);
-	printf("Status:  ");
-	print_exit_status(proc->stats.status);
+void print_stats_for_human(FILE *stream, process_t *proc) {
+	fprintf(stream, "Result:    %10s\n", result_to_str[proc->stats.result]);
+	fprintf(stream, "Time:      %10ld (ms)\n", proc->stats.time);
+	fprintf(stream, "Real Time: %10ld (ms)\n", proc->stats.real_time);
+	fprintf(stream, "Memory:    %10ld (kB)\n", proc->stats.mem);
+	fprintf(stream, "Status:  ");
+	print_exit_status(stream, proc->stats.status);
 }
 
-void print_stats(process_t *proc) {
-	printf("%s %d %ld %ld %ld %d ",
+void print_stats(FILE *stream, process_t *proc) {
+	fprintf(stream, "SRUN_REPORT: %s %d %ld %ld %ld %d ",
 			result_to_str[proc->stats.result],
 			proc->stats.result,
 			proc->stats.time,
@@ -123,9 +123,9 @@ void print_stats(process_t *proc) {
 			proc->stats.status);
 
 	if (WIFEXITED(proc->stats.status))
-		printf("%d\n", WEXITSTATUS(proc->stats.status));
+		fprintf(stream, "%d\n", WEXITSTATUS(proc->stats.status));
 	if (WIFSIGNALED(proc->stats.status))
-		printf("%s\n", strsignal(WTERMSIG(proc->stats.status)));
+		fprintf(stream, "%s\n", strsignal(WTERMSIG(proc->stats.status)));
 }
 
 void run(process_t *proc) {
@@ -156,9 +156,9 @@ int main(int argc, char *argv[]) {
     run(&proc);
 
     if (output_for_human)
-    	print_stats_for_human(&proc);
+    	print_stats_for_human(stderr, &proc);
     else
-    	print_stats(&proc);
+    	print_stats(stderr, &proc);
 
     return 0;
 }
