@@ -55,89 +55,89 @@ long get_rtime()
  */
 
 int read_from_proc(const char *filename, const pid_t pid, char *buf, const size_t buf_len) {
-	char full_fname[PROC_FILENAME_MAX_LEN];
-	snprintf(full_fname, PROC_FILENAME_MAX_LEN, "/proc/%d/%s", pid, filename);
-	int fd = open(full_fname, O_RDONLY);
-	read(fd, buf, buf_len);
-	close(fd);
-	return 0; //TODO: add error checking
+    char full_fname[PROC_FILENAME_MAX_LEN];
+    snprintf(full_fname, PROC_FILENAME_MAX_LEN, "/proc/%d/%s", pid, filename);
+    int fd = open(full_fname, O_RDONLY);
+    read(fd, buf, buf_len);
+    close(fd);
+    return 0; //TODO: add error checking
 }
 
 /* in microseconds, needs investigation, may be more than ru_utime+ru_stime */
 long get_time_from_proc2(const pid_t pid) {
-	char buf[PROC_READ_BUF_SIZE];
-	read_from_proc("schedstat", pid, buf, PROC_READ_BUF_SIZE);
-	long long time;
-	sscanf(buf, "%lld", &time);
-	return time;
+    char buf[PROC_READ_BUF_SIZE];
+    read_from_proc("schedstat", pid, buf, PROC_READ_BUF_SIZE);
+    long long time;
+    sscanf(buf, "%lld", &time);
+    return time;
 }
 
 /* in milliseconds, precision is 10 ms, but it's enough */
 long get_time_from_proc(const pid_t pid) {
-	char buf[PROC_READ_BUF_SIZE];
-	read_from_proc("stat", pid, buf, PROC_READ_BUF_SIZE);
+    char buf[PROC_READ_BUF_SIZE];
+    read_from_proc("stat", pid, buf, PROC_READ_BUF_SIZE);
 
-	unsigned long stime, utime;
-	sscanf(buf,
-		"%*d %*s %*c %*d %*d " //pid, comm, state, ppid, pgrp
-		"%*d %*d %*d %*u "     //session, tty_nr, tpgid, flags
-		"%*u %*u %*u %*u "     //minflt, cminflt, majflt, cmajflt
-		"%lu %lu", &stime, &utime);
+    unsigned long stime, utime;
+    sscanf(buf,
+        "%*d %*s %*c %*d %*d " //pid, comm, state, ppid, pgrp
+        "%*d %*d %*d %*u "     //session, tty_nr, tpgid, flags
+        "%*u %*u %*u %*u "     //minflt, cminflt, majflt, cmajflt
+        "%lu %lu", &stime, &utime);
 
-	return (stime + utime)*1000 / sysconf(_SC_CLK_TCK); //return in milliseconds
+    return (stime + utime)*1000 / sysconf(_SC_CLK_TCK); //return in milliseconds
 }
 
 // in KiloBytes
 long get_mem_from_proc(const pid_t pid) {
-	char buf[512]; //this file is bigger
-	read_from_proc("status", pid, buf, 512);
+    char buf[512]; //this file is bigger
+    read_from_proc("status", pid, buf, 512);
 
-	char * pos = strstr(buf, "VmHWM:");
-	if (!pos)
-		return 0;
+    char * pos = strstr(buf, "VmHWM:");
+    if (!pos)
+        return 0;
 
-	long mem;
-	sscanf(pos, "%*s %ld", &mem);
-	return mem;
+    long mem;
+    sscanf(pos, "%*s %ld", &mem);
+    return mem;
 }
 
 void sigalrm_handler(int sig) {
-	TRACE("alarm");
+    TRACE("alarm");
 }
 
 void set_sigalrm_handler(sighandler_t handler) {
-	struct sigaction act;
- 	act.sa_handler = handler;
-	act.sa_flags = 0;
-	sigemptyset (&act.sa_mask);
-	sigaction(SIGALRM, &act, NULL);
+    struct sigaction act;
+    act.sa_handler = handler;
+    act.sa_flags = 0;
+    sigemptyset (&act.sa_mask);
+    sigaction(SIGALRM, &act, NULL);
 }
 
 void set_timeout(long usecs) {
-	itimerval new_value;
-	new_value.it_interval.tv_sec = 0;
-	new_value.it_interval.tv_usec = 0;
-	new_value.it_value.tv_sec = 0;
-	new_value.it_value.tv_usec = usecs;
-	setitimer(ITIMER_REAL, &new_value, NULL);
+    itimerval new_value;
+    new_value.it_interval.tv_sec = 0;
+    new_value.it_interval.tv_usec = 0;
+    new_value.it_value.tv_sec = 0;
+    new_value.it_value.tv_usec = usecs;
+    setitimer(ITIMER_REAL, &new_value, NULL);
 }
 
 void reset_timeout() {
-	set_timeout(0);
-	set_timeout(0);
-	//Yes, two times, because first call theoretically can be interrupted by a signal
+    set_timeout(0);
+    set_timeout(0);
+    //Yes, two times, because first call theoretically can be interrupted by a signal
 }
 
 
 void check_exit_status(stats_t *stats, const int status) {
-	stats->status = status;
+    stats->status = status;
     if (stats->result != _OK)
         return;
 
     if ( WIFEXITED(status) && WEXITSTATUS(status) )
         stats->result = _RE;
     else if (WIFSIGNALED(status))
-    	stats->result = (WTERMSIG(status) == SIGSYS) ? _SV : _RE;
+        stats->result = (WTERMSIG(status) == SIGSYS) ? _SV : _RE;
     else
         stats->result = _OK;
 }
@@ -155,9 +155,9 @@ void check_rtime(stats_t *stats, const limits_t *limits) {
 }
 
 void check_memory(stats_t *stats, const limits_t *limits, const long mem) {
-	stats->mem = (mem > stats->mem) ? (mem) : (stats->mem);
+    stats->mem = (mem > stats->mem) ? (mem) : (stats->mem);
     if (stats->result == _OK && stats->mem > limits->mem)
-    	stats->result = _ML;
+        stats->result = _ML;
 }
 
 
@@ -173,37 +173,37 @@ void hypervisor(process_t *proc) {
     while(1) {
         set_timeout(HYPERVISOR_DELAY);
 
-    	int status;
-    	struct rusage usage;
+        int status;
+        struct rusage usage;
         pid_t ret = wait4(proc->pid, &status, 0, &usage);
 
         if (ret == proc->pid) { /* if child terminated */
-        	DEBUG("process terminated");
-        	reset_timeout();
+            DEBUG("process terminated");
+            reset_timeout();
 
-        	check_rtime(&proc->stats, &proc->limits);
-			const long time = TV_TO_MSEC(usage.ru_utime) + TV_TO_MSEC(usage.ru_stime);
-			check_time(&proc->stats, &proc->limits, time);
-			check_memory(&proc->stats, &proc->limits, usage.ru_maxrss);
-			check_exit_status(&proc->stats, status);
-			DEBUG("maxrss: %d, rtime: %d, time: %d, result = %d",
-					usage.ru_maxrss, proc->stats.real_time, time, proc->stats.result);
+            check_rtime(&proc->stats, &proc->limits);
+            const long time = TV_TO_MSEC(usage.ru_utime) + TV_TO_MSEC(usage.ru_stime);
+            check_time(&proc->stats, &proc->limits, time);
+            check_memory(&proc->stats, &proc->limits, usage.ru_maxrss);
+            check_exit_status(&proc->stats, status);
+            DEBUG("maxrss: %d, rtime: %d, time: %d, result = %d",
+                    usage.ru_maxrss, proc->stats.real_time, time, proc->stats.result);
             break;
         }
 
         check_rtime(&proc->stats, &proc->limits);
-		check_time(&proc->stats, &proc->limits, get_time_from_proc(proc->pid));
-		check_memory(&proc->stats, &proc->limits, get_mem_from_proc(proc->pid));
+        check_time(&proc->stats, &proc->limits, get_time_from_proc(proc->pid));
+        check_memory(&proc->stats, &proc->limits, get_mem_from_proc(proc->pid));
 
-		TRACE("Current stats:\n"
-				  "real time = %d ms\n"
-				  "time = %d ms\n"
-				  "mem = %d kb\n"
-				  "result = %d",
-				  proc->stats.real_time,
-				  proc->stats.time,
-				  proc->stats.mem,
-				  proc->stats.result);
+        TRACE("Current stats:\n"
+                  "real time = %d ms\n"
+                  "time = %d ms\n"
+                  "mem = %d kb\n"
+                  "result = %d",
+                  proc->stats.real_time,
+                  proc->stats.time,
+                  proc->stats.mem,
+                  proc->stats.result);
 
         if (proc->stats.result != _OK) //one of the limits exceeded
             kill(proc->pid, SIGKILL);

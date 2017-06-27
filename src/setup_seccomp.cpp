@@ -26,74 +26,74 @@
  */
 
 void setup_seccomp() {
-	int ret = -1;
-	scmp_filter_ctx ctx;
+    int ret = -1;
+    scmp_filter_ctx ctx;
 
-	ctx = seccomp_init(SCMP_ACT_KILL);
-	if (ctx == NULL) goto err;
+    ctx = seccomp_init(SCMP_ACT_KILL);
+    if (ctx == NULL) goto err;
 
 //For less copypasting:
 #define ALLOW_SYSCALL(syscall) \
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(syscall), 0); \
-	if (ret < 0) goto err;
+    ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(syscall), 0); \
+    if (ret < 0) goto err;
 // end of macros
 
-	// -- ALL RULES GO HERE --
+    // -- ALL RULES GO HERE --
 
-	// File access
-	ALLOW_SYSCALL(access);
-	ALLOW_SYSCALL(open);
-	ALLOW_SYSCALL(read);
-	ALLOW_SYSCALL(write);
-	ALLOW_SYSCALL(close);
-	ALLOW_SYSCALL(fstat);
-	ALLOW_SYSCALL(lstat);
-	ALLOW_SYSCALL(stat);
-	ALLOW_SYSCALL(ioctl);
-	ALLOW_SYSCALL(lseek);
-	ALLOW_SYSCALL(openat);
-	ALLOW_SYSCALL(readlink);
-	ALLOW_SYSCALL(getdents);
+    // File access
+    ALLOW_SYSCALL(access);
+    ALLOW_SYSCALL(open);
+    ALLOW_SYSCALL(read);
+    ALLOW_SYSCALL(write);
+    ALLOW_SYSCALL(close);
+    ALLOW_SYSCALL(fstat);
+    ALLOW_SYSCALL(lstat);
+    ALLOW_SYSCALL(stat);
+    ALLOW_SYSCALL(ioctl);
+    ALLOW_SYSCALL(lseek);
+    ALLOW_SYSCALL(openat);
+    ALLOW_SYSCALL(readlink);
+    ALLOW_SYSCALL(getdents);
 
-	// memory
-	ALLOW_SYSCALL(brk);
-	ALLOW_SYSCALL(mmap);
-	ALLOW_SYSCALL(mprotect);
-	ALLOW_SYSCALL(munmap);
+    // memory
+    ALLOW_SYSCALL(brk);
+    ALLOW_SYSCALL(mmap);
+    ALLOW_SYSCALL(mprotect);
+    ALLOW_SYSCALL(munmap);
 
-	// getting info
-	ALLOW_SYSCALL(getcwd);
-	ALLOW_SYSCALL(getegid);
-	ALLOW_SYSCALL(geteuid);
-	ALLOW_SYSCALL(getgid);
-	ALLOW_SYSCALL(getuid);
-	ALLOW_SYSCALL(getrlimit);
+    // getting info
+    ALLOW_SYSCALL(getcwd);
+    ALLOW_SYSCALL(getegid);
+    ALLOW_SYSCALL(geteuid);
+    ALLOW_SYSCALL(getgid);
+    ALLOW_SYSCALL(getuid);
+    ALLOW_SYSCALL(getrlimit);
 
-	// futexes
-	ALLOW_SYSCALL(futex);
-	ALLOW_SYSCALL(set_robust_list);
+    // futexes
+    ALLOW_SYSCALL(futex);
+    ALLOW_SYSCALL(set_robust_list);
 
-	//signals
-	ALLOW_SYSCALL(rt_sigaction);
-	ALLOW_SYSCALL(rt_sigprocmask);
+    //signals
+    ALLOW_SYSCALL(rt_sigaction);
+    ALLOW_SYSCALL(rt_sigprocmask);
 
-	// other
-	ALLOW_SYSCALL(execve);
-	ALLOW_SYSCALL(exit_group);
-	ALLOW_SYSCALL(set_tid_address);
-	ALLOW_SYSCALL(arch_prctl);
+    // other
+    ALLOW_SYSCALL(execve);
+    ALLOW_SYSCALL(exit_group);
+    ALLOW_SYSCALL(set_tid_address);
+    ALLOW_SYSCALL(arch_prctl);
 
-	// -- end of rules part --
+    // -- end of rules part --
 
-	ret = seccomp_load(ctx);
-	if (ret < 0) goto err;
+    ret = seccomp_load(ctx);
+    if (ret < 0) goto err;
 
-	seccomp_release(ctx);
-	return;
+    seccomp_release(ctx);
+    return;
 
 err:
-	ERROR("Error while installing seccomp_filter");
-	seccomp_release(ctx);
-	abort();
+    ERROR("Error while installing seccomp_filter");
+    seccomp_release(ctx);
+    abort();
 }
 

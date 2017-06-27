@@ -105,21 +105,21 @@ void redirect_fd(int fd, int to_fd)
 }
 
 void redirect_to_file(int fd, char *filename, const char *mode) {
-	if (!filename)
-		return;
+    if (!filename)
+        return;
 
     if (strcmp(filename, "stdout") == 0) {
         redirect_fd(fd, STDOUT_FILENO);
         return;
     }
 
-	FILE * f = fopen(filename, mode);
-	if (!f) {
-		SYSERROR("Can't open file ""%s""", filename);
-		abort();
-	}
+    FILE * f = fopen(filename, mode);
+    if (!f) {
+        SYSERROR("Can't open file ""%s""", filename);
+        abort();
+    }
 
-	redirect_fd(fd, fileno(f));
+    redirect_fd(fd, fileno(f));
 }
 
 void drop_capabilities() {
@@ -151,21 +151,21 @@ void do_chdir(const char *dir) {
 
 /* Drop uid and gid back to real caller's */
 void setup_uidgid() {
-	gid_t gid = getgid();
-	uid_t uid = getuid();
+    gid_t gid = getgid();
+    uid_t uid = getuid();
 
     // if we set uid first, we wouldn't have rights for setting gid
-	if (setgid(gid) == -1 || setuid(uid) == -1) {
+    if (setgid(gid) == -1 || setuid(uid) == -1) {
         ERROR("Can't set uid and gid");
         abort();
-	}
+    }
 }
 
 
 int do_start(void *_data) {
-	process_t *proc = (process_t *) _data;
+    process_t *proc = (process_t *) _data;
 
-	//Setup child after exec.
+    //Setup child after exec.
     prctl(PR_SET_PDEATHSIG, SIGKILL); //child MUST be killed when parent dies
     setup_inherited_fds();
 
@@ -179,7 +179,7 @@ int do_start(void *_data) {
     setup_uidgid();
     drop_capabilities();
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1)
-    	SYSWARN("Can't set NO_NEW_PRIVS flag for the process");
+        SYSWARN("Can't set NO_NEW_PRIVS flag for the process");
 
     //Now we can do chdir and redirect fd's
     do_chdir(proc->jail.chdir);
@@ -198,9 +198,9 @@ int do_start(void *_data) {
 
 
 int spawn_process(process_t *proc) {
-	int clone_flags = 0;
-	if (proc->use_namespaces)
-		clone_flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNET;
+    int clone_flags = 0;
+    if (proc->use_namespaces)
+        clone_flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNET;
 
     proc->pid = saferun_clone(do_start, proc, clone_flags);
 

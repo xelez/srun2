@@ -18,17 +18,17 @@
 #define PARSER_H_
 
 typedef enum parser_arg_t {
-	PARSER_ARG_STR  = 1,
-	PARSER_ARG_INT  = 2,
-	PARSER_ARG_BOOL = 3
+    PARSER_ARG_STR  = 1,
+    PARSER_ARG_INT  = 2,
+    PARSER_ARG_BOOL = 3
 } parser_arg_t;
 
 typedef struct parser_option_t {
-	char *long_name;
-	char *short_name;
-	parser_arg_t type;
-	void *variable;
-	char *description;
+    char *long_name;
+    char *short_name;
+    parser_arg_t type;
+    void *variable;
+    char *description;
 } parser_option_t;
 
 int parse_options(parser_option_t *options, int argc, char **argv);

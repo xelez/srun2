@@ -58,19 +58,19 @@ struct stats_t {
 };
 
 struct process_t {
-	limits_t limits;
-	jail_t jail;
-	stats_t stats;
+    limits_t limits;
+    jail_t jail;
+    stats_t stats;
 
-	char *redirect_stdin;
-	char *redirect_stdout;
-	char *redirect_stderr;
+    char *redirect_stdin;
+    char *redirect_stdout;
+    char *redirect_stderr;
 
     bool use_seccomp;
     bool use_namespaces;
 
-	char **argv;
-	pid_t pid;
+    char **argv;
+    pid_t pid;
 };
 
 #endif /* OPTIONS_H_ */

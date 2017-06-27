@@ -42,11 +42,11 @@ static parser_option_t options[] = {
 };
 
 void help_and_exit(char *cmd) {
-	fprintf(stderr, "Usage: %s [options] [--] command [arg1 arg2 ...]\n", cmd);
-	parser_print_help(options);
-	fprintf(stderr, "\nIf --human is not used, then format is:\n");
-	fprintf(stderr, "SRUN_REPORT: {string_result} {result} {time} {real_time} {mem} {status} {exit_code_or_string_description_for_signal}\n");
-	exit(1);
+    fprintf(stderr, "Usage: %s [options] [--] command [arg1 arg2 ...]\n", cmd);
+    parser_print_help(options);
+    fprintf(stderr, "\nIf --human is not used, then format is:\n");
+    fprintf(stderr, "SRUN_REPORT: {string_result} {result} {time} {real_time} {mem} {status} {exit_code_or_string_description_for_signal}\n");
+    exit(1);
 }
 
 void set_default_options(process_t *proc) {
@@ -68,27 +68,27 @@ void set_default_options(process_t *proc) {
 
 /* Very important function, also validates security */
 int validate_options(process_t *proc) {
-	if (proc->limits.mem < 1) {
-		ERROR("Memory limit is too small");
-		return -1;
-	}
+    if (proc->limits.mem < 1) {
+        ERROR("Memory limit is too small");
+        return -1;
+    }
 
-	if (proc->limits.real_time < 10) {
-		ERROR("Real time limit is too small, must be more than 10 ms");
-		return -1;
-	}
+    if (proc->limits.real_time < 10) {
+        ERROR("Real time limit is too small, must be more than 10 ms");
+        return -1;
+    }
 
-	if (proc->limits.time < 10) {
-		ERROR("Time limit is too small, must be more than 10 ms");
-		return -1;
-	}
+    if (proc->limits.time < 10) {
+        ERROR("Time limit is too small, must be more than 10 ms");
+        return -1;
+    }
 
-	if (!proc->argv[0]) {
-		ERROR("No program to run");
-		return -1;
-	}
+    if (!proc->argv[0]) {
+        ERROR("No program to run");
+        return -1;
+    }
 
-	return 0;
+    return 0;
 }
 
 
@@ -105,60 +105,60 @@ void print_exit_status(FILE *stream, int status) {
 }
 
 void print_stats_for_human(FILE *stream, process_t *proc) {
-	fprintf(stream, "Result:    %10s\n", result_to_str[proc->stats.result]);
-	fprintf(stream, "Time:      %10ld (ms)\n", proc->stats.time);
-	fprintf(stream, "Real Time: %10ld (ms)\n", proc->stats.real_time);
-	fprintf(stream, "Memory:    %10ld (kB)\n", proc->stats.mem);
-	fprintf(stream, "Status:  ");
-	print_exit_status(stream, proc->stats.status);
+    fprintf(stream, "Result:    %10s\n", result_to_str[proc->stats.result]);
+    fprintf(stream, "Time:      %10ld (ms)\n", proc->stats.time);
+    fprintf(stream, "Real Time: %10ld (ms)\n", proc->stats.real_time);
+    fprintf(stream, "Memory:    %10ld (kB)\n", proc->stats.mem);
+    fprintf(stream, "Status:  ");
+    print_exit_status(stream, proc->stats.status);
 }
 
 void print_stats(FILE *stream, process_t *proc) {
-	fprintf(stream, "SRUN_REPORT: %s %d %ld %ld %ld %d ",
-			result_to_str[proc->stats.result],
-			proc->stats.result,
-			proc->stats.time,
-			proc->stats.real_time,
-			proc->stats.mem,
-			proc->stats.status);
+    fprintf(stream, "SRUN_REPORT: %s %d %ld %ld %ld %d ",
+            result_to_str[proc->stats.result],
+            proc->stats.result,
+            proc->stats.time,
+            proc->stats.real_time,
+            proc->stats.mem,
+            proc->stats.status);
 
-	if (WIFEXITED(proc->stats.status))
-		fprintf(stream, "%d\n", WEXITSTATUS(proc->stats.status));
-	if (WIFSIGNALED(proc->stats.status))
-		fprintf(stream, "%s\n", strsignal(WTERMSIG(proc->stats.status)));
+    if (WIFEXITED(proc->stats.status))
+        fprintf(stream, "%d\n", WEXITSTATUS(proc->stats.status));
+    if (WIFSIGNALED(proc->stats.status))
+        fprintf(stream, "%s\n", strsignal(WTERMSIG(proc->stats.status)));
 }
 
 void run(process_t *proc) {
-	if (spawn_process(proc) == -1)
-		exit(1);
+    if (spawn_process(proc) == -1)
+        exit(1);
     hypervisor(proc);
 }
 
 int main(int argc, char *argv[]) {
-	set_default_options(&proc);
+    set_default_options(&proc);
 
-	int idx = parse_options(options, argc, argv);
+    int idx = parse_options(options, argc, argv);
     if (idx == -1)
-    	help_and_exit(argv[0]);
+        help_and_exit(argv[0]);
     proc.argv = &argv[idx];
 
     if (-1 == validate_options(&proc))
-    	help_and_exit(argv[0]);
+        help_and_exit(argv[0]);
 
-	DEBUG("Current limits:\n"
-			  "real time = %d ms\n"
-			  "time = %d ms\n"
-			  "mem = %d kb\n",
-			  proc.limits.real_time,
-			  proc.limits.time,
-			  proc.limits.mem);
+    DEBUG("Current limits:\n"
+              "real time = %d ms\n"
+              "time = %d ms\n"
+              "mem = %d kb\n",
+              proc.limits.real_time,
+              proc.limits.time,
+              proc.limits.mem);
 
     run(&proc);
 
     if (output_for_human)
-    	print_stats_for_human(stderr, &proc);
+        print_stats_for_human(stderr, &proc);
     else
-    	print_stats(stderr, &proc);
+        print_stats(stderr, &proc);
 
     return 0;
 }
