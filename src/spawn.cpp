@@ -93,23 +93,19 @@ void redirect_fd(int fd, int to_fd)
     if (fd == to_fd || fd < 0)
         return;
 
-    if (close(fd) < 0) {
-        SYSERROR("Can`t close old fd: %d", fd);
-        abort();
-    }
-
+    // dup2 closes new_fd(second argument) automatically
     if (dup2(to_fd, fd) == -1) {
         SYSERROR("can`t redirect fd %d to %d", fd, to_fd);
         abort();
     }
 }
 
-void redirect_to_file(int fd, char *filename, const char *mode) {
+void redirect_to_file_or_null(int fd, int null_fd, char *filename, const char *mode) {
     if (!filename)
         return;
 
-    if (strcmp(filename, "stdout") == 0) {
-        redirect_fd(fd, STDOUT_FILENO);
+    if (strcmp(filename, "null") == 0) {
+        redirect_fd(fd, null_fd);
         return;
     }
 
@@ -121,6 +117,7 @@ void redirect_to_file(int fd, char *filename, const char *mode) {
 
     redirect_fd(fd, fileno(f));
 }
+
 
 void drop_capabilities() {
     cap_t empty;
@@ -169,11 +166,11 @@ int do_start(void *_data) {
     prctl(PR_SET_PDEATHSIG, SIGKILL); //child MUST be killed when parent dies
     setup_inherited_fds();
 
+    //Open /dev/null
+    int null_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
+
     //Go to jail
     do_chroot(proc->jail.chroot);
-
-    //Set up limits
-    //TODO: setup rlimit
 
     //Drop all privileges
     setup_uidgid();
@@ -181,12 +178,18 @@ int do_start(void *_data) {
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1)
         SYSWARN("Can't set NO_NEW_PRIVS flag for the process");
 
+    //Set up limits
+    //TODO: setup rlimit
+
     //Now we can do chdir and redirect fd's
     do_chdir(proc->jail.chdir);
-    redirect_to_file(STDIN_FILENO, proc->redirect_stdin, "r");
-    redirect_to_file(STDOUT_FILENO, proc->redirect_stdout, "w");
+    redirect_to_file_or_null(STDIN_FILENO, null_fd, proc->redirect_stdin, "r");
+    redirect_to_file_or_null(STDOUT_FILENO, null_fd, proc->redirect_stdout, "w");
     // Redirecting stderr must be done after stdout to correctly handle case when redirecting stderr to stdout
-    redirect_to_file(STDERR_FILENO, proc->redirect_stderr, "w");
+    if (proc->redirect_stderr && !strcmp(proc->redirect_stderr, "stdout"))
+        redirect_fd(STDERR_FILENO, STDOUT_FILENO);
+    else
+        redirect_to_file_or_null(STDERR_FILENO, null_fd, proc->redirect_stderr, "w");
 
     if (proc->use_seccomp)
         setup_seccomp();

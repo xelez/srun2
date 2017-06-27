@@ -43,8 +43,14 @@ static parser_option_t options[] = {
 
 void help_and_exit(char *cmd) {
     fprintf(stderr, "Usage: %s [options] [--] command [arg1 arg2 ...]\n", cmd);
+    fprintf(stderr, "Securely runs command and prints report to stderr.\n\n");
+
     parser_print_help(options);
-    fprintf(stderr, "\nIf --human is not used, then format is:\n");
+
+    fprintf(stderr, "\n--redirect-* options accept special value \"null\" to redirect stream to /dev/null\n");
+    fprintf(stderr, "--redirect-stderr also accepts special value \"stdout\" to redirect stderr to stdout\n");
+
+    fprintf(stderr, "\nIf --human is not used, then output format is:\n");
     fprintf(stderr, "SRUN_REPORT: {string_result} {result} {time} {real_time} {mem} {status} {exit_code_or_string_description_for_signal}\n");
     exit(1);
 }
