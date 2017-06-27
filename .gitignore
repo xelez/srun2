@@ -1,5 +1,9 @@
 Debug/
 Release/
+_stuff/
 .cproject
 .project
 srun2
+
+# vim files
+*.swp
