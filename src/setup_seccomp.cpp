@@ -40,7 +40,7 @@ void setup_seccomp() {
 
     // -- ALL RULES GO HERE --
 
-    // File access
+    // File access and file descriptors
     ALLOW_SYSCALL(access);
     ALLOW_SYSCALL(open);
     ALLOW_SYSCALL(read);
@@ -54,6 +54,11 @@ void setup_seccomp() {
     ALLOW_SYSCALL(openat);
     ALLOW_SYSCALL(readlink);
     ALLOW_SYSCALL(getdents);
+    ALLOW_SYSCALL(unlink);
+    ALLOW_SYSCALL(dup);
+    ALLOW_SYSCALL(dup2);
+    ALLOW_SYSCALL(dup3);
+
 
     // memory
     ALLOW_SYSCALL(brk);
