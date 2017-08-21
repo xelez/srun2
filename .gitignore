@@ -4,6 +4,7 @@ _stuff/
 .cproject
 .project
 srun2
+env_helper
 
 # vim files
 *.swp
