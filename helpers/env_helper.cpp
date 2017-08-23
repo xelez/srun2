@@ -29,7 +29,7 @@ void init_suid() {
     euid = geteuid ();
 }
 
-void do_suid (void)
+void do_suid()
 {
     if (seteuid (euid)) {
         perror("Couldn't set euid");
@@ -37,12 +37,17 @@ void do_suid (void)
     }
 }
 
-void undo_suid (void)
+void undo_suid()
 {
     if (seteuid (ruid)) {
         perror("Couldn't set euid");
         exit(-1);
     }
+}
+
+bool directory_exists(const char * dir) {
+    struct stat buf;
+    return stat(dir, &buf) == 0 && S_ISDIR(buf.st_mode);
 }
 
 void bind_dir(const char *path_to_env, const char *dir, bool readonly = true) {
@@ -106,7 +111,8 @@ void create_env(char *path_to_env) {
     }
 
     for (int i = 0; i < MOUNT_DIRS_COUNT; ++i)
-        bind_dir(path_to_env, MOUNT_DIRS[i]);
+        if (directory_exists(MOUNT_DIRS[i]))
+            bind_dir(path_to_env, MOUNT_DIRS[i]);
 }
 
 void remove_env(char *path_to_env) {
