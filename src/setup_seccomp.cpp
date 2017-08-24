@@ -81,12 +81,14 @@ void setup_seccomp() {
     //signals
     ALLOW_SYSCALL(rt_sigaction);
     ALLOW_SYSCALL(rt_sigprocmask);
+    ALLOW_SYSCALL(sigaltstack);
 
     // other
     ALLOW_SYSCALL(execve);
     ALLOW_SYSCALL(exit_group);
     ALLOW_SYSCALL(set_tid_address);
     ALLOW_SYSCALL(arch_prctl);
+    ALLOW_SYSCALL(sysinfo);
 
     // -- end of rules part --
 
