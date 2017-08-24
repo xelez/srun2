@@ -140,7 +140,7 @@ int returncode_from_status(int status) {
 }
 
 void print_stats(FILE *stream, process_t *proc) {
-    int returncode = returncode_from_status(proc->stats.result);
+    int returncode = returncode_from_status(proc->stats.status);
 
     fprintf(stream, "SRUN_REPORT: %s %ld %ld %ld %d\n",
             result_to_str[proc->stats.result],
