@@ -1,5 +1,5 @@
 /*
- *  Copyright 2013 Alexander Ankudinov
+ *  Copyright 2017 Alexander Ankudinov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ static parser_option_t options[] = {
     { "--time",     "-t", PARSER_ARG_INT,  &proc.limits.time,      "Limit user+system execution time (in ms)"},
     { "--real_time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
     { "--seccomp",  "-s", PARSER_ARG_BOOL, &proc.use_seccomp,      "Use seccomp to ensure security"},
-    { "--usens",    "-n", PARSER_ARG_BOOL, &proc.use_namespaces,   "Use namespaces to ensure security (add 30ms overhead)"},
+    { "--usens",    "-n", PARSER_ARG_BOOL, &proc.use_namespaces,   "Use namespaces to ensure security (adds 30ms overhead)"},
     { "--human",    "-h", PARSER_ARG_BOOL, &output_for_human,      "Use human-readable output"},
     { "--redirect-stdin",  "", PARSER_ARG_STR, &proc.redirect_stdin,  "Redirect stdin to file (after chroot and chdir)"},
     { "--redirect-stdout", "", PARSER_ARG_STR, &proc.redirect_stdout, "Redirect stdout to file (after chroot and chdir)"},
@@ -51,14 +51,19 @@ void help_and_exit(char *cmd) {
     fprintf(stderr, "--redirect-stderr also accepts special value \"stdout\" to redirect stderr to stdout\n");
 
     fprintf(stderr, "\nIf --human is not used, then output format is:\n");
-    fprintf(stderr, "SRUN_REPORT: {string_result} {result} {time} {real_time} {mem} {status} {exit_code_or_string_description_for_signal}\n");
+    fprintf(stderr, "SRUN_REPORT: {string_result} {time} {real_time} {mem} {returncode}\n");
+    fprintf(stderr, "\nwhere:\n"
+                    "  * {string_result} is one of \"OK\", \"RE\", \"TL\", \"ML\", \"SV\", \"SC\"\n"
+                    "  * {time}, {real_time}, {mem} are time, wall time and memory used by the program\n"
+                    "  * {returncode} is the program return code. A negative value -N indicates that\n"
+                    "    the program was terminated by signal N\n");
     exit(1);
 }
 
 void set_default_options(process_t *proc) {
     proc->jail.chdir = NULL;
     proc->jail.chroot = NULL;
-    
+
     proc->limits.mem = 100*1024; // 100 Mbytes
     proc->limits.real_time = 4000; // 4 sec
     proc->limits.time = 2000; // 2 sec
@@ -119,19 +124,30 @@ void print_stats_for_human(FILE *stream, process_t *proc) {
     print_exit_status(stream, proc->stats.status);
 }
 
+int returncode_from_status(int status) {
+    if (WIFSIGNALED(status)) {
+        return -WTERMSIG(status);
+    }
+    else if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    else if (WIFSTOPPED(status)) {
+        return -WSTOPSIG(status);
+    } else {
+        ERROR("Process not WIFSIGNALED, not WIFEXITED and not WIFSTOPPED. Should never happened");
+        exit(1);
+    }
+}
+
 void print_stats(FILE *stream, process_t *proc) {
-    fprintf(stream, "SRUN_REPORT: %s %d %ld %ld %ld %d ",
+    int returncode = returncode_from_status(proc->stats.result);
+
+    fprintf(stream, "SRUN_REPORT: %s %ld %ld %ld %d\n",
             result_to_str[proc->stats.result],
-            proc->stats.result,
             proc->stats.time,
             proc->stats.real_time,
             proc->stats.mem,
-            proc->stats.status);
-
-    if (WIFEXITED(proc->stats.status))
-        fprintf(stream, "%d\n", WEXITSTATUS(proc->stats.status));
-    if (WIFSIGNALED(proc->stats.status))
-        fprintf(stream, "%s\n", strsignal(WTERMSIG(proc->stats.status)));
+            returncode);
 }
 
 void run(process_t *proc) {
