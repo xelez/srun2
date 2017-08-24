@@ -136,6 +136,9 @@ void do_chroot(const char *dir) {
         SYSERROR("can`t chroot");
         abort();
     }
+    if (chdir("/") == -1) {
+        SYSERROR("can't chdir after chroot");
+    }
 }
 
 void do_chdir(const char *dir) {
