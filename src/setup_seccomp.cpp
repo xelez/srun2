@@ -58,7 +58,7 @@ void setup_seccomp() {
     ALLOW_SYSCALL(dup);
     ALLOW_SYSCALL(dup2);
     ALLOW_SYSCALL(dup3);
-
+    ALLOW_SYSCALL(fcntl);
 
     // memory
     ALLOW_SYSCALL(brk);
