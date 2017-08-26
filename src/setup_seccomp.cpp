@@ -44,7 +44,11 @@ void setup_seccomp() {
     ALLOW_SYSCALL(access);
     ALLOW_SYSCALL(open);
     ALLOW_SYSCALL(read);
+    ALLOW_SYSCALL(readv);
     ALLOW_SYSCALL(write);
+    ALLOW_SYSCALL(writev);
+    ALLOW_SYSCALL(preadv);
+    ALLOW_SYSCALL(pwritev);
     ALLOW_SYSCALL(close);
     ALLOW_SYSCALL(fstat);
     ALLOW_SYSCALL(lstat);
