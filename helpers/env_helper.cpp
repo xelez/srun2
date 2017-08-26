@@ -117,7 +117,8 @@ void create_env(char *path_to_env) {
 
 void remove_env(char *path_to_env) {
     for (int i = 0; i < MOUNT_DIRS_COUNT; ++i)
-        unbind_dir(path_to_env, MOUNT_DIRS[i]);
+        if (directory_exists(MOUNT_DIRS[i]))
+            unbind_dir(path_to_env, MOUNT_DIRS[i]);
 }
 
 int main(int argc, char *argv[]) {
