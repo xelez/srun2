@@ -95,6 +95,7 @@ void setup_seccomp() {
     ALLOW_SYSCALL(arch_prctl);
     ALLOW_SYSCALL(sysinfo);
     ALLOW_SYSCALL(getrandom);
+    ALLOW_SYSCALL(getpid);
 
     // -- end of rules part --
 
