@@ -90,6 +90,7 @@ void setup_seccomp() {
     ALLOW_SYSCALL(set_tid_address);
     ALLOW_SYSCALL(arch_prctl);
     ALLOW_SYSCALL(sysinfo);
+    ALLOW_SYSCALL(getrandom);
 
     // -- end of rules part --
 
