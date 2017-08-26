@@ -54,6 +54,7 @@ void setup_seccomp() {
     ALLOW_SYSCALL(openat);
     ALLOW_SYSCALL(readlink);
     ALLOW_SYSCALL(getdents);
+    ALLOW_SYSCALL(getdents64);
     ALLOW_SYSCALL(unlink);
     ALLOW_SYSCALL(dup);
     ALLOW_SYSCALL(dup2);
