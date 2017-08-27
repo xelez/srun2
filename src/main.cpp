@@ -31,7 +31,7 @@ static parser_option_t options[] = {
     { "--chroot",   "-c", PARSER_ARG_STR,  &proc.jail.chroot,      "Do a chroot"},
     { "--mem",      "-m", PARSER_ARG_INT,  &proc.limits.mem,       "Limit memory usage (in Kbytes)"},
     { "--time",     "-t", PARSER_ARG_INT,  &proc.limits.time,      "Limit user+system execution time (in ms)"},
-    { "--real_time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
+    { "--real-time","-r", PARSER_ARG_INT,  &proc.limits.real_time, "Limit real execution time (in ms)"},
     { "--seccomp",  "-s", PARSER_ARG_BOOL, &proc.use_seccomp,      "Use seccomp to ensure security"},
     { "--usens",    "-n", PARSER_ARG_BOOL, &proc.use_namespaces,   "Use namespaces to ensure security (adds 30ms overhead)"},
     { "--human",    "-h", PARSER_ARG_BOOL, &output_for_human,      "Use human-readable output"},
