@@ -88,6 +88,9 @@ void setup_seccomp() {
     ALLOW_SYSCALL(rt_sigprocmask);
     ALLOW_SYSCALL(sigaltstack);
 
+    //sleep and times
+    ALLOW_SYSCALL(nanosleep);
+
     // other
     ALLOW_SYSCALL(execve);
     ALLOW_SYSCALL(exit_group);
